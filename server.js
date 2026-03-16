@@ -26,13 +26,28 @@ const pool = require('./db');
 // 获取所有用户
 app.get('/users', async (req, res) => {
   try {
-    const { role } = req.query;
+    const { role, username, password } = req.query;
     let query = 'SELECT * FROM users';
     const params = [];
+    const conditions = [];
     
     if (role) {
-      query += ' WHERE role = $1';
+      conditions.push(`role = $${params.length + 1}`);
       params.push(role);
+    }
+    
+    if (username) {
+      conditions.push(`username = $${params.length + 1}`);
+      params.push(username);
+    }
+    
+    if (password) {
+      conditions.push(`password = $${params.length + 1}`);
+      params.push(password);
+    }
+    
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
     
     query += ' ORDER BY id DESC';
@@ -123,11 +138,12 @@ app.get('/pets', async (req, res) => {
 
 app.post('/pets', async (req, res) => {
   try {
-    const { owner_id, name, type, breed, weight, age_months, gender, image, vaccination_record, health_cert, remark } = req.body;
+    const { owner_id, name, type, pet_type, breed, weight, age_months, gender, image, vaccination_record, health_cert, remark } = req.body;
+    const petType = type || pet_type; // 支持 pet_type 和 type
     const result = await pool.query(
       `INSERT INTO pets (owner_id, name, type, breed, weight, age_months, gender, image, vaccination_record, health_cert, remark)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [owner_id, name, type, breed, weight, age_months, gender, image, vaccination_record, health_cert, remark]
+      [owner_id, name, petType, breed, weight, age_months, gender, image, vaccination_record, health_cert, remark]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
